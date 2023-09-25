@@ -1,4 +1,4 @@
-;;; company-org-table.el --- Integration of org-table into company  -*- lexical-binding: t; -*-
+;;; company-org-table.el --- Autocomplete Org table cells using company  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2022 Shankar Rao
 
@@ -90,6 +90,9 @@ and the value `below' uses column cells below point."
 (defvar company-org-table-prefix-length 0
   "Length of prefix string to be completed.")
 
+(defvar company-org-table-right-distance 0
+  "Distance between point and right bar of table cell where completion is occurring.")
+
 (defvar company-org-table-alist nil
   "Alist mapping table header information to candidate list generators.
 
@@ -122,8 +125,7 @@ completion candidates.")
 
 This function assumes the point in an Org table and returns the
 text before the point in the current table cell."
-  (unless (or (= (following-char) ?|)
-              (looking-back "|[ \t]*")))
+  (unless (or (= (following-char) ?|) (looking-back "|[ \t]*")))
     (let ((pt (point)))
       (save-excursion
         (re-search-backward "| ?" nil t)
@@ -136,9 +138,12 @@ text before the point in the current table cell."
   "Generate a list of completion candidates that start with PREFIX.
 
 This records the length of prefix in
-`company-org-table-prefix-length' so that it can be accessed
-during post-completion."
-  (setq company-org-table-prefix-length (length prefix))
+`company-org-table-prefix-length' and distance to the right end
+of table cell in `company-org-table-right-distance' so that they
+can be accessed during post-completion."
+  (setq company-org-table-prefix-length (length prefix)
+        company-org-table-right-distance
+        (- (save-excursion (search-forward "|")) (point) 2))
   (let ((prefix-re (concat (rx bos) (char-fold-to-regexp prefix)))
         (cand-list (funcall (alist-get (company-org-table-name-header)
                                        company-org-table-alist
@@ -151,8 +156,8 @@ during post-completion."
   "Post-completion command for `company-org-table' backend.
 
 This deletes extra spaces caused by insertion of the candidate into the table."
-  (delete-char (- (length cand) company-org-table-prefix-length)))
-
+  (delete-char (min (- (length cand) company-org-table-prefix-length)
+                    company-org-table-right-distance)))
 
 (defun company-org-table-name-header ()
   "Get the name and column header of Org table at point as a list."
@@ -176,10 +181,10 @@ below the point. If SECTION is any other symbol (e.g.,
   (when (org-at-table-p)
     (save-excursion
       (let* ((section (or section 'all))
-             (rowno (line-number-at-pos))
-             (goal-column (progn (re-search-backward "| ?" nil t)
-                                 (goto-char (match-end 0))
-                                 (current-column)))
+             (goal-column (progn
+                            (re-search-backward "| ?" nil t)
+                            (goto-char (match-end 0))
+                            (current-column)))
              (pt (point))
              (current (when (and (eq section 'all)
                                  (not (org-at-table-hline-p)))
@@ -208,8 +213,7 @@ candidates are filtered to remove redundant elements and the
 column header is ignored. This function is used to obtain a
 default set of candidates if searching `company-org-table-alist'
 return nil."
-  (seq-uniq (cdr (company-org-table-get-column
-                  company-org-table-section))))
+  (seq-uniq (cdr (company-org-table-get-column company-org-table-section))))
 
 ;;;;;; Private Helper Functions
 
@@ -222,8 +226,9 @@ the first character of cell text."
   (skip-chars-forward " \t")
   (buffer-substring
    (point)
-   (progn (re-search-forward "[ \t]*\\(|\\|$\\)")
-		  (match-beginning 0))))
+   (progn
+     (re-search-forward "[ \t]*\\(|\\|$\\)")
+	 (match-beginning 0))))
 
 
 (defun company-org-table--get-part (arg)
