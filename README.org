@@ -1,0 +1,53 @@
+* Company Org Table
+** Summary
+
+This package provides autocomptetion functionality in Org tables using
+company. The completion candidates are by default the contents of other cells
+in the same table column, but can also be predefined based on the table name
+and column header.
+
+** Installation
+
+This package can be cloned from GitHub via the following command:
+
+#+begin_src bash
+git clone https://github.com/shankar2k/company-org-table.git
+#+end_src
+
+To start using it, place it somewhere in your Emacs load-path and add the line
+
+#+begin_src emacs-lisp
+  (require 'company-org-table)
+  (add-to-list 'company-backends 'company-org-table)
+#+end_src
+
+in your ~.emacs.d/init.el~ file. 
+
+If you use ~use-package~, you can configure this as follows:
+
+#+begin_src emacs-lisp
+  (setq company-org-table-load-path "<path to company-org-table dir>")
+  (use-package company-org-table
+    :load-path company-org-table-load-path
+    :ensure nil
+    :config
+    (add-to-list 'company-backends 'company-org-table))
+#+end_src
+
+
+** Usage
+
+This package defines the following commands:
+
+~company-org-table~: ~company-mode~ backend for Org tables that mimics the
+auto-complete behavior of spreadsheet programs like Excel, LibreOffice, and
+Google Sheets.
+
+** Credits
+
+This package would not have been possible without the following guides for
+writing company backends: Company Github repository[fn:1] and the Sixty North
+blog[fn:2].
+
+[fn:1] https://github.com/company-mode/company-mode/wiki/Writing-backends
+[fn:2] http://sixty-north.com/blog/writing-the-simplest-emacs-company-mode-backend
