@@ -46,8 +46,4 @@ Google Sheets.
 ** Credits
 
 This package would not have been possible without the following guides for
-writing company backends: Company Github repository[fn:1] and the Sixty North
-blog[fn:2].
-
-[fn:1] https://github.com/company-mode/company-mode/wiki/Writing-backends
-[fn:2] http://sixty-north.com/blog/writing-the-simplest-emacs-company-mode-backend
+writing company backends: [[https://github.com/company-mode/company-mode/wiki/Writing-backends][Company Github repository]] and the [[http://sixty-north.com/blog/writing-the-simplest-emacs-company-mode-backend][Sixty North blog]].
