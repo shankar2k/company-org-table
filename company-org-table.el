@@ -138,7 +138,7 @@ of table cell in `company-org-table-right-distance' so that they
 can be accessed during post-completion."
   (setq company-org-table-prefix-length (length prefix)
         company-org-table-right-distance
-        (- (save-excursion (search-forward "|")) (point) 2))
+        (- (save-excursion (search-forward "|" nil t)) (point) 2))
   (let ((prefix-re (concat (rx bos) (char-fold-to-regexp prefix)))
         (cand-list (funcall (alist-get (company-org-table-name-header)
                                        company-org-table-alist
