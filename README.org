@@ -1,9 +1,9 @@
 * Company Org Table
 ** Summary
 
-This package provides autocomptetion functionality in Org tables using
-company. The completion candidates are by default the contents of other cells
-in the same table column similar to spreadsheet programs like Excel,
+This package provides autocompletion functionality in Org tables using
+company. The completion candidates are, by default, the contents of other
+cells in the same table column, similar to spreadsheet programs like Excel,
 Libreoffice and Google Sheets. The completion candidates can be configured to
 be dynamically generated based on the table name and column header.
 
@@ -15,7 +15,8 @@ This package can be cloned from GitHub via the following command:
 git clone https://github.com/shankar2k/company-org-table.git
 #+end_src
 
-To start using it, place it somewhere in your Emacs load-path and add the line
+To start using it, place it somewhere in your Emacs load-path and add it as a
+company backend with following commands:
 
 #+begin_src emacs-lisp
   (require 'company-org-table)
@@ -41,14 +42,14 @@ If you use ~use-package~, you can configure this as follows:
 This package defines the following commands:
 
 ~company-org-table~: ~company-mode~ backend for Org tables that mimics the
-auto-complete behavior of spreadsheet programs like Excel, LibreOffice, and
-Google Sheets.
+auto-complete behavior of spreadsheet programs like [[https://microsoft.com/excel][Microsoft Excel]], [[https://www.libreoffice.org/][LibreOffice]], and
+[[https://sheets.google.com][Google Sheets]].
 
 By default, the completion candidates are contents of table cells in the
 current column excluding the current cell. The following custom variables can
 be changed to enable additional functionality:
 
-- company-org-table-section :: which section of column to use for completion candidates
+- company-org-table-section :: which section of table column to use for completion candidates
 - company-org-table-alist :: map between table name/header information and candidate list generators
 
 ~company-org-table-section~ can be set to ~exclude~, ~above~, or ~below~. With ~exclude~
