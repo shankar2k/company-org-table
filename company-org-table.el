@@ -1,4 +1,4 @@
-;;; company-org-table.el --- Autocomplete Org table cells using company  -*- lexical-binding: t; -*-
+;;; company-org-table.el --- Completion backend for Org table cells  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2022 Shankar Rao
 
@@ -69,6 +69,10 @@
 
 ;;;; Customization
 
+(defgroup company-org-table nil
+  "Completion backend for Org table cells."
+  :group 'company)
+
 (defcustom company-org-table-section 'exclude
   "Section of Org table column at point to use for completion candidates.
 
@@ -80,6 +84,17 @@ and the value `below' uses column cells below point."
           (const :tag "Use cells above point for completion" 'above)
           (const :tag "Use cells below point for completion" 'below)))
 
+(defcustom company-org-table-alist nil
+  "Alist mapping table name/header information to candidate list generators.
+
+Each key is a two-element list where the first element is a
+regexp matching an Org table name, and the second element is a
+regexp matching a column header.
+
+Each value is a function with no arguments that returns a list of
+completion candidates."
+  :type '(alist :key-type (list regexp regexp) :value-type function))
+
 ;;;; Constants / Variables
 
 (defvar company-org-table-prefix-length 0
@@ -87,16 +102,6 @@ and the value `below' uses column cells below point."
 
 (defvar company-org-table-right-distance 0
   "Distance between point and right bar of table cell where completion is occurring.")
-
-(defvar company-org-table-alist nil
-  "Alist mapping table header information to candidate list generators.
-
-Each key is a two-element list where the first element is a
-regexp matching an Org table name, and the second element is a
-regexp matching a column header.
-
-Each value is a function with no arguments that returns a list of
-completion candidates.")
 
 ;;;;; Keymaps
 
