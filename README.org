@@ -43,6 +43,30 @@ This package defines the following commands:
 auto-complete behavior of spreadsheet programs like Excel, LibreOffice, and
 Google Sheets.
 
+** Example
+
+Suppose that you have the configuration below in your ~.emacs.d/init.el~ file to
+help you keep track of language pack purchases from your userbase
+
+#+begin_src emacs-lisp
+  (setq user-list
+        '("Alice" "Bob" "Carol" "Dave" "Eve" "Frank" "Grace" "Heidi" "Ivan"
+          "Judy" "Ken" "Lisa" "Mike" "Nancy" "Olivia" "Pat" "Quentin" "Rupert"
+          "Sybil" "Ted" "Ursula" "Victor" "Wendy" "Xavier" "Yusuf" "Zoe"))
+
+  (add-to-list 'company-org-table-alist
+               (cons (list "user-purchases" "User") (lambda () user-list)))
+
+  (add-to-list 'company-org-table-alist
+               (cons (list "user-purchases" "Language")
+                     (lambda () (mapcar #'car language-info-alist))))
+#+end_src
+
+The following example illustrates autocompletion provided by this package.
+
+[[example.gif]]
+
+
 ** Credits
 
 This package would not have been possible without the following guides for

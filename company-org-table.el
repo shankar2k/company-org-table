@@ -22,13 +22,8 @@
 
 ;;;;; Manual
 
-;; Install these required packages:
-
-;; + org
-;; + company
-
-;; Then put this file in your load-path, and put this in your init
-;; file:
+;; First install company, then put this file in your load-path, and put this
+;; in your init file:
 
 ;; (require 'company-org-table)
 ;; (add-to-list 'company-backends 'company-org-table)
