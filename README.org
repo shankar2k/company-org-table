@@ -3,8 +3,9 @@
 
 This package provides autocomptetion functionality in Org tables using
 company. The completion candidates are by default the contents of other cells
-in the same table column, but can also be predefined based on the table name
-and column header.
+in the same table column similar to spreadsheet programs like Excel,
+Libreoffice and Google Sheets. The completion candidates can be configured to
+be dynamically generated based on the table name and column header.
 
 ** Installation
 
@@ -43,10 +44,33 @@ This package defines the following commands:
 auto-complete behavior of spreadsheet programs like Excel, LibreOffice, and
 Google Sheets.
 
+By default, the completion candidates are contents of table cells in the
+current column excluding the current cell. The following custom variables can
+be changed to enable additional functionality:
+
+- company-org-table-section :: which section of column to use for completion candidates
+- company-org-table-alist :: map between table name/header information and candidate list generators
+
+~company-org-table-section~ can be set to ~exclude~, ~above~, or ~below~. With ~exclude~
+all columns cells except the cell at point are used as completion candidates.
+With ~above~ and ~below~, all column cells above or below point, respectively, are
+used as completion candidates
+
+~company-org-table-alist~ is an alist that maps table name and header
+information to candidate list generators. 
+
+Each key is a two-element, where the first element is a regexp matching an Org
+table name (i.e., what follows "#+TBLNAME:"), and the second element is a
+regexp matching a column header.
+
+Each value is a function with no arguments that returns a list of completion
+candidate strings.
+
+
 ** Example
 
-Suppose that you have the configuration below in your ~.emacs.d/init.el~ file to
-help you keep track of language pack purchases from your userbase
+Suppose that you have the configuration below to help you keep track of
+language pack purchases from your userbase:
 
 #+begin_src emacs-lisp
   (setq user-list
@@ -62,7 +86,7 @@ help you keep track of language pack purchases from your userbase
                      (lambda () (mapcar #'car language-info-alist))))
 #+end_src
 
-The following example illustrates autocompletion provided by this package.
+The following example illustrates the autocompletion provided by this package.
 
 [[example.gif]]
 
