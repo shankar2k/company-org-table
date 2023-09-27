@@ -1,10 +1,10 @@
 ;;; company-org-table.el --- Completion backend for Org table cells  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2022 Shankar Rao
+;; Copyright (C) 2023 Shankar Rao
 
 ;; Author: Shankar Rao <shankar.rao@gmail.com>
 ;; URL: http://example.com/company-org-table.el
-;; Version: 0.1-pre
+;; Version: 0.1
 ;; Package-Requires: ((emacs "25.2"))
 ;; Keywords: org
 
@@ -12,7 +12,9 @@
 
 ;;; Commentary:
 
-;; This package contains my various custom functions for org-mode.
+;; This package contains a company completion backend for Org table cells to
+;; that mimics the auto-complete behavior of spreadsheet programs like
+;; Microsoft Excel, LibreOffice, and Google Sheets.
 
 ;;;; Installation
 
@@ -22,11 +24,20 @@
 
 ;;;;; Manual
 
-;; First install company, then put this file in your load-path, and put this
-;; in your init file:
+;; To start using it, place it somewhere in your Emacs load-path and add it as a
+;; company backend with following commands:
 
 ;; (require 'company-org-table)
 ;; (add-to-list 'company-backends 'company-org-table)
+
+;; If you use use-package, you can configure this as follows:
+
+;; (setq company-org-table-load-path "<path to company-org-table dir>")
+;; (use-package company-org-table
+;;   :load-path company-org-table-load-path
+;;   :ensure nil
+;;   :config
+;;   (add-to-list 'company-backends 'company-org-table))
 
 ;;;; Usage
 
@@ -35,6 +46,47 @@
 ;; `company-org-table': `company-mode' backend for Org tables that mimics the
 ;; auto-complete behavior of spreadsheet programs like Excel, LibreOffice, and
 ;; Google Sheets.
+
+;; By default, the completion candidates are contents of table cells in the
+;; current column excluding the current cell. The following custom variables can
+;; be changed to enable additional functionality:
+
+;; - ``company-org-table-section'' :: which section of table column to use for completion candidates
+;; - ``company-org-table-alist'' :: map between table name/header information and candidate list generators
+
+;; ``company-org-table-section'' can be set to ``exclude'', ``above'', or
+;; ``below''. With ``exclude'' all columns cells except the cell at point are
+;; used as completion candidates. With ``above'' and ``below'', all column cells
+;; above or below point, respectively, are used as completion candidates
+
+;; ``company-org-table-alist'' is an alist that maps table name and header
+;; information to candidate list generators. 
+
+;; Each key is a two-element, where the first element is a regexp matching an Org
+;; table name (i.e., what follows "#+TBLNAME:"), and the second element is a
+;; regexp matching a column header.
+
+;; Each value is a function with no arguments that returns a list of completion
+;; candidate strings.
+
+;;;; Example
+
+;; Suppose that you have the configuration below to help you keep track of
+;; language pack purchases from your userbase:
+
+;; (setq user-list
+;;       '("Alice" "Bob" "Carol" "Dave" "Eve" "Frank" "Grace" "Heidi" "Ivan"
+;;         "Judy" "Ken" "Lisa" "Mike" "Nancy" "Olivia" "Pat" "Quentin" "Rupert"
+;;         "Sybil" "Ted" "Ursula" "Victor" "Wendy" "Xavier" "Yusuf" "Zoe"))
+;;
+;; (add-to-list 'company-org-table-alist
+;;              (cons (list "user-purchases" "User") (lambda () user-list)))
+;; (add-to-list 'company-org-table-alist
+;;              (cons (list "user-purchases" "Language")
+;;                    (lambda () (mapcar #'car language-info-alist))))
+
+;; The animation in the file "example.gif" illustrates the autocompletion
+;; provided by this package.
 
 ;;;; Credits
 
@@ -59,6 +111,12 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; History:
+
+;; Version 0.1 (2023-09-27):
+
+;; - Initial version
 
 ;;; Code:
 
