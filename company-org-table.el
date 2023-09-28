@@ -3,9 +3,9 @@
 ;; Copyright (C) 2023 Shankar Rao
 
 ;; Author: Shankar Rao <shankar.rao@gmail.com>
-;; URL: http://example.com/company-org-table.el
+;; URL: https://github.com/shankar2k/company-org-table
 ;; Version: 0.1
-;; Package-Requires: ((emacs "25.2"))
+;; Package-Requires: ((emacs "25.2") (company "0.9.13"))
 ;; Keywords: org
 
 ;; This file is not part of GNU Emacs.
