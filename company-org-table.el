@@ -5,8 +5,8 @@
 ;; Author: Shankar Rao <shankar.rao@gmail.com>
 ;; URL: https://github.com/shankar2k/company-org-table
 ;; Version: 0.1
-;; Package-Requires: ((emacs "25.2") (company "0.9.13"))
-;; Keywords: org
+;; Package-Requires: ((emacs "26.2") (company "0.9.13"))
+;; Keywords: org, convenience, wp
 
 ;; This file is not part of GNU Emacs.
 
