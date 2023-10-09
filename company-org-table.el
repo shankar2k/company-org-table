@@ -183,13 +183,13 @@ completion candidates."
 
 This function assumes the point in an Org table and returns the
 text before the point in the current table cell."
-  (unless (or (= (following-char) ?|) (looking-back "|[ \t]*")))
+  (unless (or (= (following-char) ?|) (looking-back "|[ \t]*"))
     (let ((pt (point)))
       (save-excursion
         (re-search-backward "| ?" nil t)
         (goto-char (match-end 0))
         (skip-chars-forward " \t")
-        (buffer-substring (point) pt))))
+        (buffer-substring (point) pt)))))
 
 
 (defun company-org-table-candidates (prefix)
@@ -239,19 +239,19 @@ below the point. If SECTION is any other symbol (e.g.,
   (when (org-at-table-p)
     (save-excursion
       (let* ((section (or section 'all))
-             (goal-column (progn
-                            (re-search-backward "| ?" nil t)
-                            (goto-char (match-end 0))
-                            (current-column)))
+             (col (progn
+                    (re-search-backward "| ?" nil t)
+                    (goto-char (match-end 0))
+                    (current-column)))
              (pt (point))
              (current (when (and (eq section 'all)
                                  (not (org-at-table-hline-p)))
                         (list (company-org-table--get-field))))
              (above (unless (eq section 'below)
-                      (company-org-table--get-part -1)))
+                      (company-org-table--get-part -1 col)))
              (below (unless (eq section 'above)
                       (goto-char pt)
-                      (nreverse (company-org-table--get-part +1)))))
+                      (nreverse (company-org-table--get-part +1 col)))))
         (nconc above current below)))))
 
 ;;;;;; Argument Functions
@@ -289,16 +289,15 @@ the first character of cell text."
 	 (match-beginning 0))))
 
 
-(defun company-org-table--get-part (arg)
+(defun company-org-table--get-part (arg col)
   "Get part of Org table column at point as a list.
 
-This is a helper function used by
-`company-org-table--get-column'. When ARG is -1, return the
-column fields above the point, and when ARG is +1, return the
-column fields below the point. This function assumes that
-`goal-column' has been set to the current Org table column."
+This is a helper function used by `company-org-table-get-column'.
+When ARG is -1, return the column fields above the point, and
+when ARG is +1, return the column fields below the point. COL is
+the current Org table column."
   (let ((sdata nil))
-    (while (and (line-move arg t) (org-at-table-p))
+    (while (and (line-move arg t) (move-to-column col) (org-at-table-p))
       (unless (org-at-table-hline-p)
         (push (company-org-table--get-field) sdata)))
     sdata))
