@@ -138,7 +138,7 @@ The value `exclude' uses all cells except the cell at
 point. The value `above' uses column cells above point,
 and the value `below' uses column cells below point."
   :type '(choice
-          (const :tag "Use all except cell at point for completion" 'exclude)
+          (const :tag "Use all except current cell for completion" 'exclude)
           (const :tag "Use cells above point for completion" 'above)
           (const :tag "Use cells below point for completion" 'below)))
 
@@ -159,7 +159,8 @@ completion candidates."
   "Length of prefix string to be completed.")
 
 (defvar company-org-table-right-distance 0
-  "Distance between point and right bar of table cell where completion is occurring.")
+  "Distance between point and right bar of table cell where
+completion is occurring.")
 
 ;;;;; Keymaps
 
@@ -213,7 +214,8 @@ can be accessed during post-completion."
 (defun company-org-table-post-completion (cand)
   "Post-completion command for `company-org-table' backend.
 
-This deletes extra spaces caused by insertion of the candidate into the table."
+This deletes extra spaces caused by insertion of the candidate
+into the table."
   (delete-char (min (- (length cand) company-org-table-prefix-length)
                     company-org-table-right-distance)))
 
@@ -278,9 +280,8 @@ return nil."
 (defun company-org-table--get-field ()
   "Get text in Org table cell at point.
 
-This is a helper function used by
-`company-org-table--get-column'. It assumes that the point is on
-the first character of cell text."
+This is a helper function used by `company-org-table-get-column'.
+It assumes that the point is on the first character of cell text."
   (skip-chars-forward " \t")
   (buffer-substring
    (point)
