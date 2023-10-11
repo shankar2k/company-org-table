@@ -173,7 +173,8 @@ completion is occurring.")
     (interactive (company-begin-backend 'company-org-table))
     (prefix (and (org-at-table-p) (company-org-table-prefix)))
     (candidates (company-org-table-candidates arg))
-    (post-completion (company-org-table-post-completion arg))))
+    (post-completion (company-org-table-post-completion arg))
+    (no-cache 't)))
 
 ;;;;; Support
 
