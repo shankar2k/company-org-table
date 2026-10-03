@@ -60,9 +60,9 @@
 ;; above or below point, respectively, are used as completion candidates
 
 ;; ``company-org-table-alist'' is an alist that maps table name and header
-;; information to candidate list generators. 
+;; information to candidate list generators.
 
-;; Each key is a two-element, where the first element is a regexp matching an Org
+;; Each key is a two-element list, where the first element is a regexp matching an Org
 ;; table name (i.e., what follows "#+TBLNAME:"), and the second element is a
 ;; regexp matching a column header.
 
@@ -114,6 +114,10 @@
 
 ;;; History:
 
+;; Version 0.2 (2026-10-03):
+
+;; - Various speed improvements
+
 ;; Version 0.1 (2023-09-27):
 
 ;; - Initial version
@@ -153,46 +157,65 @@ Each value is a function with no arguments that returns a list of
 completion candidates."
   :type '(alist :key-type (list regexp regexp) :value-type function))
 
+(defcustom company-org-table-ignore-list nil
+  "List containing regexps of table headers to ignore."
+  :type '(repeat regexp))
+
 ;;;; Constants / Variables
+
+(defconst company-org-table-keyword-regexp
+  (rx bol (0+ space) "#+" (or "NAME" "name" "TBLNAME" "tblname") ":"
+      (0+ space) (group (1+ (not space))) (0+ space) eol)
+  "Regexp matching a table name keyword line in an Org file.")
 
 (defvar company-org-table-prefix-length 0
   "Length of prefix string to be completed.")
 
 (defvar company-org-table-right-distance 0
-  "Distance between point and right bar of table cell where
-completion is occurring.")
+  "Distance between point and right bar of completion table cell.")
 
 ;;;;; Keymaps
 
 ;;;; Functions
 
-(defun company-org-table (command &optional arg &rest ignored)
-  "`company-mode' backend that completes an Org table cell."
+(defun company-org-table (command &optional arg &rest _ignored)
+  "`company-mode' backend that completes an Org table cell.
+
+COMMAND is one of 'prefix, 'candidates, 'post-completion.
+Optional ARG is an argument used when COMMAND is 'candidates or
+'post-completion."
   (interactive (list 'interactive))
   (cl-case command
     (interactive (company-begin-backend 'company-org-table))
-    (prefix (and (org-at-table-p) (company-org-table-prefix)))
+    (prefix (when (and (org-at-table-p) (not (company-org-table-ignore-column)))
+              (company-org-table-prefix)))
     (candidates (company-org-table-candidates arg))
-    (post-completion (company-org-table-post-completion arg))
-    (no-cache 't)))
+    (post-completion (company-org-table-post-completion arg))))
 
 ;;;;; Support
 
 ;;;;;; Backend Helper Functions
 
+
+(defun company-org-table-ignore-column ()
+  "Return non-nil if table name and header are in ignore list."
+  (when-let* ((header (cadr (company-org-table-name-header))))
+    (cl-loop for re in company-org-table-ignore-list
+             thereis (string-match-p re header))))
+
 (defun company-org-table-prefix ()
-  "Prefix command used by `company-org-table'.
+  "Returns text before point in current table cell.
 
-This function assumes the point in an Org table and returns the
-text before the point in the current table cell."
-  (unless (or (= (following-char) ?|) (looking-back "|[ \t]*"))
-    (let ((pt (point)))
-      (save-excursion
-        (re-search-backward "| ?" nil t)
-        (goto-char (match-end 0))
-        (skip-chars-forward " \t")
-        (buffer-substring (point) pt)))))
-
+This is a prefix command used by `company-org-table' that assumes the
+point is in an Org table."
+  (let ((bol (pos-bol)))
+    (unless (or (= (following-char) ?|) (looking-back "|[ \t]*" bol))
+      (let ((pt (point)))
+        (save-excursion
+          (when (re-search-backward "| ?" bol t)
+            (goto-char (match-end 0))
+            (skip-chars-forward " \t")
+            (buffer-substring-no-properties (point) pt)))))))
 
 (defun company-org-table-candidates (prefix)
   "Generate a list of completion candidates that start with PREFIX.
@@ -201,70 +224,88 @@ This records the length of prefix in
 `company-org-table-prefix-length' and distance to the right end
 of table cell in `company-org-table-right-distance' so that they
 can be accessed during post-completion."
-  (setq company-org-table-prefix-length (length prefix)
-        company-org-table-right-distance
-        (- (save-excursion (search-forward "|" nil t)) (point) 2))
-  (let ((prefix-re (concat (rx bos) (char-fold-to-regexp prefix)))
-        (cand-list (funcall (alist-get (company-org-table-name-header)
-                                       company-org-table-alist
-                                       #'company-org-table-candidates-column
-                                       nil
-                                       #'company-org-table-match))))
-    (cl-remove-if-not (lambda (cand) (string-match prefix-re cand)) cand-list)))
+  (setq company-org-table-prefix-length (length prefix))
+  (when (<= company-org-table-prefix-length)
+    (let ((pipe-pos (save-excursion (search-forward "|" (pos-eol) t))))
+      (setq company-org-table-right-distance (if pipe-pos
+                                                 (- pipe-pos (point) 2)
+                                               0))
+      (let ((prefix-re (concat (rx bos) (char-fold-to-regexp prefix)))
+            (cand-list (funcall (alist-get (company-org-table-name-header)
+                                           company-org-table-alist
+                                           #'company-org-table-candidates-column
+                                           nil
+                                           #'company-org-table-match))))
+        (cl-remove-if-not (lambda (cand) (string-match-p prefix-re cand))
+                          cand-list)))))
 
 (defun company-org-table-post-completion (cand)
   "Post-completion command for `company-org-table' backend.
 
-This deletes extra spaces caused by insertion of the candidate
-into the table."
-  (delete-char (min (- (length cand) company-org-table-prefix-length)
-                    company-org-table-right-distance)))
+This deletes extra spaces caused by insertion of CAND into the table."
+  (delete-char (max (min (- (length cand) company-org-table-prefix-length)
+                         company-org-table-right-distance)
+                    0)))
 
 (defun company-org-table-name-header ()
   "Get the name and column header of Org table at point as a list."
-  (let ((curr-table (org-element-lineage (org-element-at-point)
-                                         '(table) t)))
-    (list (or (org-element-property :name curr-table) "")
-          (save-excursion
-            (goto-char (+ (org-element-property :contents-begin curr-table)
-                          (current-column)))
-            (org-trim (substring-no-properties (org-table-get-field)))))))
-
+  (save-excursion
+    (let ((col (org-table-current-column)))
+      (goto-char (org-table-begin))
+      (let* ((table-beg (point))
+             ;; Look for name line immediately above table (bounded to 300
+             ;; characters)
+             (name (save-excursion
+                     (when (re-search-backward
+                            company-org-table-keyword-regexp
+                            (max (point-min) (- table-beg 300)) t)
+                       (match-string 1))))
+             (header (progn
+                       ;; Move past hlines at top of table
+                       (while (org-at-table-hline-p)
+                         (forward-line 1))
+                       (when (org-at-table-p)
+                         (company-org-table--get-field col)))))
+        (list (or name "") (or header ""))))))
 
 (defun company-org-table-get-column (&optional section)
-  "Get contents of SECTION of Org table column at point as a list.
+  "Convert current column in table at point to a Lisp structure.
 
-If SECTION is nil or the symbol `all', get all column cells. If
-SECTION is the symbol `above', get all columns cells above the
-point. If SECTION is the symbol `below', get all column cells
-below the point. If SECTION is any other symbol (e.g.,
-`exclude'), get all column cells except for the cell at point."
+Optional SECTION can be 'above, 'below, or 'all (default)."
   (when (org-at-table-p)
     (save-excursion
-      (let* ((section (or section 'all))
-             (col (progn
-                    (re-search-backward "| ?" nil t)
-                    (goto-char (match-end 0))
-                    (current-column)))
-             (pt (point))
-             (current (when (and (eq section 'all)
-                                 (not (org-at-table-hline-p)))
-                        (list (company-org-table--get-field))))
-             (above (unless (eq section 'below)
-                      (company-org-table--get-part -1 col)))
-             (below (unless (eq section 'above)
-                      (goto-char pt)
-                      (nreverse (company-org-table--get-part +1 col)))))
-        (nconc above current below)))))
+      (let* ((col (org-table-current-column))
+             (section (or section 'all))
+             (pt (point)))
+        (cl-flet* ((collect-direction (dir)
+                     (let ((sdata nil))
+                       (while (and (zerop (forward-line dir))
+                                   (org-at-table-p))
+                         (unless (org-at-table-hline-p)
+                           (when-let* ((field
+                                        (company-org-table--get-field col)))
+                             (push field sdata))))
+                       sdata)))
+          (let* ((curr (when (and (eq section 'all) (org-at-table-hline-p))
+                         (forward-line 0)
+                         (when-let* ((val (company-org-table--get-field col)))
+                           (list val))))
+                 (above (unless (eq section 'below)
+                          (collect-direction -1)))
+                 (below (unless (eq section 'above)
+                          (goto-char pt)
+                          (nreverse (collect-direction +1)))))
+            (nconc above curr below)))))))
 
 ;;;;;; Argument Functions
 
-(defun company-org-table-match (re key)
-  "Non-nil if each key in KEY matches each corresponding regexp in RE.
+(defun company-org-table-match (re-list key-list)
+  "Non-nil if each key in KEY-LIST matches each corresponding regexp in RE-LIST.
 
 This is used as a test function to search `company-org-table-alist'."
-  (seq-every-p #'identity (seq-mapn #'string-match re key)))
-
+  (cl-loop for re in re-list
+           for key in key-list
+           always (and re key (string-match-p re key))))
 
 (defun company-org-table-candidates-column ()
   "Get list of candidates from a section of Org table column at point.
@@ -274,35 +315,24 @@ candidates are filtered to remove redundant elements and the
 column header is ignored. This function is used to obtain a
 default set of candidates if searching `company-org-table-alist'
 return nil."
-  (seq-uniq (cdr (company-org-table-get-column company-org-table-section))))
+  (delete-dups
+   (cdr (company-org-table-get-column company-org-table-section))))
 
 ;;;;;; Private Helper Functions
 
-(defun company-org-table--get-field ()
-  "Get text in Org table cell at point.
+(defun company-org-table--get-field (col)
+  "Get text in current Org table row at column COL.
 
-This is a helper function used by `company-org-table-get-column'.
-It assumes that the point is on the first character of cell text."
-  (skip-chars-forward " \t")
-  (buffer-substring
-   (point)
-   (progn
-     (re-search-forward "[ \t]*\\(|\\|$\\)")
-	 (match-beginning 0))))
-
-
-(defun company-org-table--get-part (arg col)
-  "Get part of Org table column at point as a list.
-
-This is a helper function used by `company-org-table-get-column'.
-When ARG is -1, return the column fields above the point, and
-when ARG is +1, return the column fields below the point. COL is
-the current Org table column."
-  (let ((sdata nil))
-    (while (and (line-move arg t) (move-to-column col) (org-at-table-p))
-      (unless (org-at-table-hline-p)
-        (push (company-org-table--get-field) sdata)))
-    sdata))
+This is a helper function used by `company-org-table-get-column' and
+`company-org-table-name-header'. It assumes that point is at the
+beginning of line in a normal (non-hline) table row."
+  (let ((eol (pos-eol)))
+    (when (search-forward "|" eol t col)
+      (skip-chars-forward " \t")
+      (buffer-substring-no-properties
+       (point) (progn
+                 (re-search-forward "[ \t]*\\(|\\|$\\)" eol t)
+	             (match-beginning 0))))))
 
 ;;;; Footer
 
